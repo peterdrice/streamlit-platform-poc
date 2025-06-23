@@ -27,14 +27,20 @@ jobs:
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v1
 
-      - name: Build, tag, and push image to Amazon ECR
-        env:
-          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          ECR_REPOSITORY: sample-streamlit-app
-          IMAGE_TAG: ${{ github.sha }} # Use the commit hash as the tag
+      - name: Build, tag, and push images for each app
         run: |
-          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG --build-arg APP_DIR=apps/sample-app .
-          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+          ECR_REGISTRY=${{ steps.login-ecr.outputs.registry }}
+          IMAGE_TAG=${{ github.sha }}
+
+          for app_dir in apps/*/; do
+            if [ -d "$app_dir" ]; then
+              ECR_REPOSITORY=$(basename "$app_dir")
+              echo "Building and pushing for $ECR_REPOSITORY"
+              aws ecr create-repository --repository-name $ECR_REPOSITORY || echo "Repository $ECR_REPOSITORY already exists."
+              docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG --build-arg APP_DIR=$(basename "$app_dir") .
+              docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+            fi
+          done
 
       - name: Generate apps.json file
         run: |

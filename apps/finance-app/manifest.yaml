@@ -1,0 +1,7 @@
+appName: "Simple Stock Chart"
+version: "1.0"
+description: "A very simple app showing a fake stock price chart. Used to test the 'Financial Analysis' category."
+category: "Financial Analysis"
+entryPoint: "app.py"
+requirements: "requirements.txt"
+
