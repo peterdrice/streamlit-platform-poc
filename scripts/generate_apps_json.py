@@ -1,0 +1,46 @@
+import os
+import json
+import yaml # This comes from PyYAML
+from collections import defaultdict
+
+def main():
+    apps_dir = 'apps'
+    output_file = 'apps.json'
+
+    categorized_apps = defaultdict(list)
+
+    # Walk through each directory in the apps folder
+    for app_name in os.listdir(apps_dir):
+        app_path = os.path.join(apps_dir, app_name)
+        manifest_path = os.path.join(app_path, 'manifest.yaml')
+
+        if os.path.isdir(app_path) and os.path.exists(manifest_path):
+            print(f"Processing {manifest_path}...")
+            with open(manifest_path, 'r') as f:
+                manifest = yaml.safe_load(f)
+
+                app_data = {
+                    'appName': manifest.get('appName'),
+                    'description': manifest.get('description'),
+                    'version': manifest.get('version')
+                }
+
+                category = manifest.get('category', 'Uncategorized')
+                categorized_apps[category].append(app_data)
+
+    # Format the data into the final list structure
+    final_list = []
+    for category, apps in categorized_apps.items():
+        final_list.append({
+            'category': category,
+            'apps': apps
+        })
+
+    # Write the final JSON file
+    with open(output_file, 'w') as f:
+        json.dump(final_list, f, indent=2)
+
+    print(f"Successfully generated {output_file}")
+
+if __name__ == '__main__':
+    main()

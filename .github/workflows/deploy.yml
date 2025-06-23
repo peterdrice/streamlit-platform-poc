@@ -1,0 +1,48 @@
+name: Build and Deploy Streamlit Platform
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  id-token: write # Required for OIDC
+  contents: read  # Required to check out the code
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          role-to-assume: arn:aws:iam::242418121446:role/GitHubActionsRole-StreamlitPlatform # Paste the Role ARN you copied
+          aws-region: us-east-1   # e.g., us-east-1
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v1
+
+      - name: Build, tag, and push image to Amazon ECR
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          ECR_REPOSITORY: sample-streamlit-app
+          IMAGE_TAG: ${{ github.sha }} # Use the commit hash as the tag
+        run: |
+          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG --build-arg APP_DIR=apps/sample-app .
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+
+      - name: Generate apps.json file
+        run: |
+          pip install pyyaml
+          python scripts/generate_apps_json.py
+
+      - name: Deploy frontend to S3
+        env:
+          BUCKET_NAME: ${{ secrets.S3_BUCKET_NAME }} # We will add this secret in GitHub
+        run: |
+          aws s3 sync . s3://${BUCKET_NAME} --exclude "*" --include "index.html" --include "script.js" --include "apps.json"
