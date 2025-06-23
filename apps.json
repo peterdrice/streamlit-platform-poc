@@ -1,0 +1,22 @@
+[
+  {
+    "category": "Data Science Tools",
+    "apps": [
+      {
+        "appName": "Proof-of-Concept App",
+        "description": "An interactive tool that demonstrates the successful deployment of a containerized Streamlit application on AWS ECS Fargate.",
+        "version": "1.0"
+      }
+    ]
+  },
+  {
+    "category": "Financial Analysis",
+    "apps": [
+      {
+        "appName": "Stock Price Forecaster (Coming Soon)",
+        "description": "An interactive tool to visualize historical stock data and predict future trends using ARIMA models.",
+        "version": "0.9"
+      }
+    ]
+  }
+]
