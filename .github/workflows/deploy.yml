@@ -9,10 +9,14 @@ permissions:
   id-token: write # Required for OIDC
   contents: read  # Required to check out the code
 
+# Set environment variables for the entire workflow
+env:
+  AWS_REGION: us-east-1 # Or your preferred AWS region
+
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
-
+    
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
@@ -20,8 +24,8 @@ jobs:
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v2
         with:
-          role-to-assume: arn:aws:iam::242418121446:role/GitHubActionsRole-StreamlitPlatform # Paste the Role ARN you copied
-          aws-region: us-east-1   # e.g., us-east-1
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }} # You will add this secret in GitHub
+          aws-region: ${{ env.AWS_REGION }}
 
       - name: Login to Amazon ECR
         id: login-ecr
@@ -31,13 +35,17 @@ jobs:
         run: |
           ECR_REGISTRY=${{ steps.login-ecr.outputs.registry }}
           IMAGE_TAG=${{ github.sha }}
-
-          for app_dir in apps/*/; do
-            if [ -d "$app_dir" ]; then
-              ECR_REPOSITORY=$(basename "$app_dir")
-              echo "Building and pushing for $ECR_REPOSITORY"
-              aws ecr create-repository --repository-name $ECR_REPOSITORY || echo "Repository $ECR_REPOSITORY already exists."
-              docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG --build-arg APP_DIR=$(basename "$app_dir") .
+          
+          for app_path in apps/*; do
+            if [ -d "$app_path" ]; then
+              ECR_REPOSITORY=$(basename "$app_path")
+              echo "--- Building and pushing for $ECR_REPOSITORY from path $app_path ---"
+              
+              # Create ECR repo if it doesn't exist. The '|| true' part ensures the workflow doesn't fail if it already exists.
+              aws ecr create-repository --repository-name $ECR_REPOSITORY --region ${{ env.AWS_REGION }} || true
+              
+              # Build and push the image, passing the correct relative path as the build argument
+              docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG --build-arg APP_DIR="$app_path" .
               docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
             fi
           done
@@ -48,7 +56,7 @@ jobs:
           python scripts/generate_apps_json.py
 
       - name: Deploy frontend to S3
-        env:
-          BUCKET_NAME: ${{ secrets.S3_BUCKET_NAME }} # We will add this secret in GitHub
         run: |
-          aws s3 sync . s3://${BUCKET_NAME} --exclude "*" --include "index.html" --include "script.js" --include "apps.json"
+          aws s3 sync . s3://${{ secrets.S3_BUCKET_NAME }} --exclude "*" --include "index.html" --include "script.js" --include "apps.json"
+
+
