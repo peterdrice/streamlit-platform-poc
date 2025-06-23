@@ -33,7 +33,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         </div>
                         <div class="flex justify-between items-center mt-4">
                             <span class="text-sm text-gray-500 bg-gray-100 px-2 py-1 rounded">v${app.version}</span>
-                            <button id="${buttonId}" class="bg-blue-600 text-white font-semibold px-4 py-2 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 transition-colors w-24">
+                            <button id="${buttonId}" class="bg-blue-600 text-white font-semibold px-4 py-2 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 transition-colors w-32">
                                 Launch
                             </button>
                         </div>
@@ -57,34 +57,51 @@ document.addEventListener('DOMContentLoaded', function() {
         });
 });
 
-function launchApp(event, appName) {
+async function launchApp(event, appName) {
     const button = event.target;
     button.textContent = 'Launching...';
     button.disabled = true;
 
-    // For this PoC, we use a simplified name for the API path.
-    // In a real app, you'd have a mapping from appName to task definition or ECR repo name.
     const apiAppName = 'sample-streamlit-app';
 
-    fetch(`${API_ENDPOINT_BASE}/launch/${apiAppName}`, {
-        method: 'POST'
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.launchUrl) {
-            console.log(`App launched. URL: ${data.launchUrl}`);
-            window.open(data.launchUrl, '_blank');
-            button.textContent = 'Launch';
-            button.disabled = false;
-        } else {
-            throw new Error(data.error || 'Unknown error occurred.');
+    try {
+        const response = await fetch(`${API_ENDPOINT_BASE}/launch/${apiAppName}`, { method: 'POST' });
+        const data = await response.json();
+
+        if (!data.launchUrl) {
+            throw new Error(data.error || 'Unknown error occurred during launch.');
         }
-    })
-    .catch(error => {
+
+        console.log(`App launched, waiting for it to become ready at: ${data.launchUrl}`);
+        button.textContent = 'Waiting...';
+
+        await pollUntilReady(data.launchUrl);
+
+        console.log(`App is ready! Opening now.`);
+        window.open(data.launchUrl, '_blank');
+        button.textContent = 'Launch';
+        button.disabled = false;
+
+    } catch (error) {
         console.error('Launch error:', error);
         alert(`Failed to launch app: ${error.message}`);
         button.textContent = 'Launch';
         button.disabled = false;
-    });
+    }
 }
 
+function pollUntilReady(url) {
+    return new Promise(resolve => {
+        const interval = setInterval(async () => {
+            try {
+                // We use 'no-cors' mode because we can't see the response from a different origin,
+                // but a successful fetch (even an opaque one) means the server is up.
+                await fetch(url, { mode: 'no-cors' });
+                clearInterval(interval);
+                resolve();
+            } catch (e) {
+                console.log('App not ready yet, retrying...');
+            }
+        }, 3000); // Poll every 3 seconds
+    });
+}
