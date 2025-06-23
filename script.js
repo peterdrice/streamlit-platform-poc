@@ -1,5 +1,4 @@
-// IMPORTANT: Replace with your actual API Gateway URL from the command above
-const API_ENDPOINT_BASE = 'https://51yoc1tha9.execute-api.us-east-1.amazonaws.com/prod'; 
+const API_ENDPOINT_BASE = 'https://51yoc1tha9.execute-api.us-east-1.amazonaws.com/prod';
 
 document.addEventListener('DOMContentLoaded', function() {
     fetch('apps.json')
@@ -10,12 +9,19 @@ document.addEventListener('DOMContentLoaded', function() {
 
             data.forEach(category => {
                 const categorySection = document.createElement('section');
-                categorySection.className = 'mb-12';
+                categorySection.className = 'mb-4';
 
-                const categoryTitle = document.createElement('h2');
-                categoryTitle.className = 'text-2xl font-semibold text-gray-700 border-b pb-2 mb-6';
-                categoryTitle.textContent = category.category;
-                categorySection.appendChild(categoryTitle);
+                // Create the category header that will be clickable
+                const header = document.createElement('div');
+                header.className = 'bg-white rounded-lg shadow-sm p-4 flex justify-between items-center cursor-pointer';
+                header.innerHTML = `
+                    <h2 class="text-2xl font-semibold text-gray-700">${category.category}</h2>
+                    <ion-icon name="chevron-down-outline" class="text-2xl text-gray-500 transition-transform"></ion-icon>
+                `;
+
+                // Create the collapsible content area
+                const content = document.createElement('div');
+                content.className = 'hidden p-4'; // Hidden by default
 
                 const grid = document.createElement('div');
                 grid.className = 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6';
@@ -40,14 +46,22 @@ document.addEventListener('DOMContentLoaded', function() {
                     `;
                     grid.appendChild(appCard);
 
-                    // Add event listener after the element is in the DOM
                     setTimeout(() => {
                         document.getElementById(buttonId).addEventListener('click', (event) => launchApp(event, app.appName));
                     }, 0);
                 });
 
-                categorySection.appendChild(grid);
+                content.appendChild(grid);
+                categorySection.appendChild(header);
+                categorySection.appendChild(content);
                 appContainer.appendChild(categorySection);
+
+                // Add the click event listener to the header
+                header.addEventListener('click', () => {
+                    const icon = header.querySelector('ion-icon');
+                    content.classList.toggle('hidden');
+                    icon.classList.toggle('rotate-180');
+                });
             });
         })
         .catch(error => {
@@ -58,6 +72,9 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 async function launchApp(event, appName) {
+    // Stop the click from bubbling up and triggering the collapse/expand
+    event.stopPropagation();
+
     const button = event.target;
     button.textContent = 'Launching...';
     button.disabled = true;
@@ -94,8 +111,6 @@ function pollUntilReady(url) {
     return new Promise(resolve => {
         const interval = setInterval(async () => {
             try {
-                // We use 'no-cors' mode because we can't see the response from a different origin,
-                // but a successful fetch (even an opaque one) means the server is up.
                 await fetch(url, { mode: 'no-cors' });
                 clearInterval(interval);
                 resolve();
@@ -105,3 +120,4 @@ function pollUntilReady(url) {
         }, 3000); // Poll every 3 seconds
     });
 }
+

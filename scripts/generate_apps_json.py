@@ -1,6 +1,6 @@
 import os
 import json
-import yaml # This comes from PyYAML
+import yaml
 from collections import defaultdict
 
 def main():
@@ -10,7 +10,7 @@ def main():
     categorized_apps = defaultdict(list)
 
     # Walk through each directory in the apps folder
-    for app_name in os.listdir(apps_dir):
+    for app_name in sorted(os.listdir(apps_dir)): # Sort app directories
         app_path = os.path.join(apps_dir, app_name)
         manifest_path = os.path.join(app_path, 'manifest.yaml')
 
@@ -30,17 +30,20 @@ def main():
 
     # Format the data into the final list structure
     final_list = []
-    for category, apps in categorized_apps.items():
+    # Sort categories alphabetically
+    for category in sorted(categorized_apps.keys()):
+        # Sort apps within each category alphabetically by appName
+        sorted_apps = sorted(categorized_apps[category], key=lambda x: x['appName'])
         final_list.append({
             'category': category,
-            'apps': apps
+            'apps': sorted_apps
         })
 
     # Write the final JSON file
     with open(output_file, 'w') as f:
         json.dump(final_list, f, indent=2)
 
-    print(f"Successfully generated {output_file}")
+    print(f"Successfully generated {output_file} with sorted data.")
 
 if __name__ == '__main__':
     main()
