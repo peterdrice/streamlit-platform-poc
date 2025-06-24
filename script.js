@@ -1,8 +1,5 @@
 const API_ENDPOINT_BASE = 'https://51yoc1tha9.execute-api.us-east-1.amazonaws.com/prod';
 
-// IMPORTANT: Replace with your actual API Gateway URL
-const API_ENDPOINT_BASE = '<YOUR_API_GATEWAY_URL>'; 
-
 document.addEventListener('DOMContentLoaded', function() {
     fetch('apps.json')
         .then(response => response.json())
