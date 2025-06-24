@@ -30,18 +30,18 @@ jobs:
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v1
 
-      - name: Build, Push, and Register Task Definitions for each app
+      - name: Build, Push, and Register Task Definitions
         run: |
           ECR_REGISTRY=${{ steps.login-ecr.outputs.registry }}
           IMAGE_TAG=${{ github.sha }}
-          EXECUTION_ROLE_ARN=$(aws iam get-role --role-name ecsTaskExecutionRole --query 'Role.Arn' --output text)
+          export EXECUTION_ROLE_ARN=$(aws iam get-role --role-name ecsTaskExecutionRole --query 'Role.Arn' --output text)
 
           for app_path in apps/*; do
             if [ -d "$app_path" ]; then
-              APP_ID=$(basename "$app_path")
-              ECR_REPOSITORY=$APP_ID
-              IMAGE_URI="$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
-              TASK_FAMILY="${APP_ID}-task"
+              export APP_ID=$(basename "$app_path")
+              export ECR_REPOSITORY=$APP_ID
+              export IMAGE_URI="$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
+              export TASK_FAMILY="${APP_ID}-task"
 
               echo "--- Processing app: $APP_ID ---"
 
@@ -50,24 +50,10 @@ jobs:
               docker build -t $IMAGE_URI --build-arg APP_DIR="$app_path" .
               docker push $IMAGE_URI
 
-              cat <<EOF > task-definition.json
-{
-    "family": "$TASK_FAMILY",
-    "networkMode": "awsvpc",
-    "executionRoleArn": "$EXECUTION_ROLE_ARN",
-    "containerDefinitions": [
-        {
-            "name": "$APP_ID",
-            "image": "$IMAGE_URI",
-            "portMappings": [{"containerPort": 8501, "protocol": "tcp"}],
-            "essential": true
-        }
-    ],
-    "requiresCompatibilities": ["FARGATE"],
-    "cpu": "256",
-    "memory": "512"
-}
-EOF
+              # Use envsubst to replace variables in the template and create the final JSON
+              envsubst < task-definition-template.json > task-definition.json
+
+              # Register the new task definition revision from the file
               aws ecs register-task-definition --cli-input-json file://task-definition.json
               echo "--- Finished processing $APP_ID ---"
             fi
