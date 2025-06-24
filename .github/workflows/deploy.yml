@@ -45,14 +45,11 @@ jobs:
 
               echo "--- Processing app: $APP_ID ---"
 
-              # 1. Create ECR repo if it doesn't exist
               aws ecr create-repository --repository-name $ECR_REPOSITORY --region ${{ env.AWS_REGION }} || true
 
-              # 2. Build and push the Docker image
               docker build -t $IMAGE_URI --build-arg APP_DIR="$app_path" .
               docker push $IMAGE_URI
 
-              # 3. Create a task definition file dynamically
               cat <<EOF > task-definition.json
               {
                   "family": "$TASK_FAMILY",
@@ -71,7 +68,6 @@ jobs:
                   "memory": "512"
               }
               EOF
-              # 4. Register the new task definition revision
               aws ecs register-task-definition --cli-input-json file://task-definition.json
               echo "--- Finished processing $APP_ID ---"
             fi
