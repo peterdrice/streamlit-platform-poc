@@ -70,7 +70,7 @@ jobs:
                   "cpu": "256",
                   "memory": "512"
               }
-EOF
+              EOF
               # 4. Register the new task definition revision
               aws ecs register-task-definition --cli-input-json file://task-definition.json
               echo "--- Finished processing $APP_ID ---"
@@ -85,3 +85,4 @@ EOF
       - name: Deploy frontend to S3
         run: |
           aws s3 sync . s3://${{ secrets.S3_BUCKET_NAME }} --exclude "*" --include "index.html" --include "script.js" --include "apps.json" --delete
+
