@@ -51,23 +51,23 @@ jobs:
               docker push $IMAGE_URI
 
               cat <<EOF > task-definition.json
-{
-    "family": "$TASK_FAMILY",
-    "networkMode": "awsvpc",
-    "executionRoleArn": "$EXECUTION_ROLE_ARN",
-    "containerDefinitions": [
-        {
-            "name": "$APP_ID",
-            "image": "$IMAGE_URI",
-            "portMappings": [{"containerPort": 8501, "protocol": "tcp"}],
-            "essential": true
-        }
-    ],
-    "requiresCompatibilities": ["FARGATE"],
-    "cpu": "256",
-    "memory": "512"
-}
-EOF
+              {
+                  "family": "$TASK_FAMILY",
+                  "networkMode": "awsvpc",
+                  "executionRoleArn": "$EXECUTION_ROLE_ARN",
+                  "containerDefinitions": [
+                      {
+                          "name": "$APP_ID",
+                          "image": "$IMAGE_URI",
+                          "portMappings": [{"containerPort": 8501, "protocol": "tcp"}],
+                          "essential": true
+                      }
+                  ],
+                  "requiresCompatibilities": ["FARGATE"],
+                  "cpu": "256",
+                  "memory": "512"
+              }
+              EOF
               aws ecs register-task-definition --cli-input-json file://task-definition.json
               echo "--- Finished processing $APP_ID ---"
             fi
@@ -81,4 +81,3 @@ EOF
       - name: Deploy frontend to S3
         run: |
           aws s3 sync . s3://${{ secrets.S3_BUCKET_NAME }} --exclude "*" --include "index.html" --include "script.js" --include "apps.json" --delete
-
