@@ -674,14 +674,14 @@ if (all(key in st.session_state for key in required_keys) and
     )
     col_prefitr2.metric(
         label="Pre-Test R²",
-        value=f'{r2_score(
+        value=f'''{r2_score(
             mpl_data[(mpl_data["Date"] >= pd.to_datetime(st.session_state["pre_test_start"]))
                       & (mpl_data["Date"] <= pd.to_datetime(st.session_state["pre_test_end"]))
                     ]["observed"], 
             mpl_data[(mpl_data["Date"] >= pd.to_datetime(st.session_state["pre_test_start"]))
                       & (mpl_data["Date"] <= pd.to_datetime(st.session_state["pre_test_end"]))
                     ]["posterior_mean"],
-        ):.02%}',
+        ):.02%}''',
         help="The the model's R² during the pre-test window",
         border=True,
     )
