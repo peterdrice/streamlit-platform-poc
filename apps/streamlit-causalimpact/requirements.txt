@@ -1,0 +1,16 @@
+streamlit
+pandas
+numpy
+# The causalimpact library from Google is built on top of TensorFlow and TensorFlow Probability
+# It's recommended to install specific compatible versions if you encounter issues
+causalimpact
+tensorflow
+tensorflow-probability
+
+# For data processing and machine learning
+scikit-learn
+scipy
+pyjanitor
+
+# For plotting
+matplotlib

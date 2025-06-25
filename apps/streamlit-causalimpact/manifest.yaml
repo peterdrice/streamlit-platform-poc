@@ -1,0 +1,6 @@
+appName: "Causal Impact Analysis Tool"
+version: "1.0"
+description: "Perform causal impact analysis on marketing campaigns using Bayesian structural time-series models. Supports CSV upload and API connections."
+category: "Marketing Analytics"
+entryPoint: "main.py"
+requirements: "requirements.txt"

@@ -1,0 +1,18 @@
+{
+    "test_title": "LACO Test",
+    "date_col": "week",
+    "geo_col": "dma",
+    "value_col": "revenue",
+    "pre_test_start": "2024-10-07",
+    "test_start": "2025-04-21",
+    "test_end": "2025-05-19",
+    "post_test_end": "2025-05-19",
+    "test_geos": [
+        "philadelphia_pa"
+    ],
+    "control_geos": [
+        "san_diego_ca",
+        "san_francisco_oakland_san_jose_ca",
+        "washington_dc_hagerstown_md"
+    ]
+}

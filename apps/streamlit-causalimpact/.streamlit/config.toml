@@ -1,0 +1,7 @@
+[theme]
+# base="dark"
+base="light"
+primaryColor="#3498f3"
+# backgroundColor="#0E1117"
+backgroundColor="#FFFFFF"
+

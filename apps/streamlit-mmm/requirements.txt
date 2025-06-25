@@ -1,0 +1,13 @@
+streamlit
+pandas
+numpy
+# The causalimpact library is used in one of the imports
+causalimpact
+tensorflow
+tensorflow-probability
+
+# For plotting
+matplotlib
+
+# Assumed dependency for the local 'janitor' asset, good practice to include
+pyjanitor
