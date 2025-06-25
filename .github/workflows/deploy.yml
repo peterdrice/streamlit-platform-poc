@@ -14,8 +14,6 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
-      - name: Install PyYAML for parsing
-        run: pip install pyyaml
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v2
         with:
@@ -29,6 +27,7 @@ jobs:
           ECR_REGISTRY=${{ steps.login-ecr.outputs.registry }}
           IMAGE_TAG=${{ github.sha }}
           export EXECUTION_ROLE_ARN=$(aws iam get-role --role-name ecsTaskExecutionRole --query 'Role.Arn' --output text)
+          # Set a default task role ARN. For now, it's the same as the execution role.
           export TASK_ROLE_ARN=$EXECUTION_ROLE_ARN
 
           for app_path in apps/*; do
@@ -38,18 +37,10 @@ jobs:
               export IMAGE_URI="$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
               export TASK_FAMILY="${APP_ID}-task"
 
-              MANIFEST_PATH="$app_path/manifest.yaml"
-              # Use Python for robust YAML parsing
-              export ENTRYPOINT_SCRIPT=$(python -c "import yaml; f=open('$MANIFEST_PATH'); d=yaml.safe_load(f); print(d.get('entryPoint', 'app.py'))")
-              export REQUIREMENTS_FILE=$(python -c "import yaml; f=open('$MANIFEST_PATH'); d=yaml.safe_load(f); print(d.get('requirements', 'requirements.txt'))")
-
-              echo "--- Processing app: $APP_ID with entrypoint: $ENTRYPOINT_SCRIPT and requirements: $REQUIREMENTS_FILE ---"
+              echo "--- Processing app: $APP_ID ---"
 
               aws ecr create-repository --repository-name $ECR_REPOSITORY --region ${{ env.AWS_REGION }} || true
-              docker build -t $IMAGE_URI \
-                --build-arg APP_DIR="$app_path" \
-                --build-arg ENTRYPOINT_SCRIPT="$ENTRYPOINT_SCRIPT" \
-                --build-arg REQUIREMENTS_FILE="$REQUIREMENTS_FILE" .
+              docker build -t $IMAGE_URI --build-arg APP_DIR="$app_path" .
               docker push $IMAGE_URI
 
               envsubst < task-definition-template.json > task-definition.json
@@ -58,7 +49,9 @@ jobs:
             fi
           done
       - name: Generate apps.json file
-        run: python scripts/generate_apps_json.py
+        run: |
+          pip install pyyaml
+          python scripts/generate_apps_json.py
       - name: Deploy frontend to S3
         run: |
           aws s3 sync . s3://${{ secrets.S3_BUCKET_NAME }} --exclude "*" --include "index.html" --include "script.js" --include "apps.json" --delete
