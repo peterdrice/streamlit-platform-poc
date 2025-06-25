@@ -1,29 +1,23 @@
-# Use an official Python runtime as a parent image
 FROM python:3.9-slim
-
-# Set the working directory in the container
 WORKDIR /app
 
-# ARG will be passed in from the docker build command
-# This tells the Dockerfile which app's files to copy
+# Argument for the app's directory
 ARG APP_DIR
 
-# Copy the specific application's requirements file
-COPY ${APP_DIR}/requirements.txt .
+# Argument for the requirements file, with a default
+ARG REQUIREMENTS_FILE=requirements.txt
 
-# Install any needed packages specified in requirements.txt
+# Argument for the startup script, with a default value
+ARG ENTRYPOINT_SCRIPT=app.py
+
+# Copy only the requirements file first to leverage Docker's build cache
+COPY ${APP_DIR}/${REQUIREMENTS_FILE} ./requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy the rest of the specific application's source code
+# Copy the rest of the app's code
 COPY ${APP_DIR}/ .
-
-# Make port 8501 available to the world outside this container
 EXPOSE 8501
 
-# Define environment variable
-ENV NAME World
-
-# Run app.py when the container launches
-# The entryPoint from manifest.yaml will eventually be used here
-CMD ["streamlit", "run", "app.py"]
+# Use the dynamic entrypoint script in the CMD instruction
+CMD ["streamlit", "run", "${ENTRYPOINT_SCRIPT}"]
 

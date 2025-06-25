@@ -1,40 +1,34 @@
 name: Build and Deploy Streamlit Platform
-
 on:
   push:
     branches:
       - main
-
 permissions:
   id-token: write
   contents: read
-
 env:
   AWS_REGION: us-east-1
-
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
-
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v2
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
-
       - name: Login to Amazon ECR
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v1
-
       - name: Build, Push, and Register Task Definitions
         run: |
           ECR_REGISTRY=${{ steps.login-ecr.outputs.registry }}
           IMAGE_TAG=${{ github.sha }}
           export EXECUTION_ROLE_ARN=$(aws iam get-role --role-name ecsTaskExecutionRole --query 'Role.Arn' --output text)
+          # Set a default task role ARN. For now, it's the same as the execution role.
+          export TASK_ROLE_ARN=$EXECUTION_ROLE_ARN
 
           for app_path in apps/*; do
             if [ -d "$app_path" ]; then
@@ -43,27 +37,35 @@ jobs:
               export IMAGE_URI="$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
               export TASK_FAMILY="${APP_ID}-task"
 
-              echo "--- Processing app: $APP_ID ---"
+              MANIFEST_PATH="$app_path/manifest.yaml"
+              # Extract entryPoint, default to app.py
+              ENTRYPOINT_SCRIPT=$(grep 'entryPoint:' "$MANIFEST_PATH" | awk '{print $2}')
+              if [ -z "$ENTRYPOINT_SCRIPT" ]; then
+                ENTRYPOINT_SCRIPT="app.py"
+              fi
+              # Extract requirements file, default to requirements.txt
+              REQUIREMENTS_FILE=$(grep 'requirements:' "$MANIFEST_PATH" | awk '{print $2}')
+              if [ -z "$REQUIREMENTS_FILE" ]; then
+                REQUIREMENTS_FILE="requirements.txt"
+              fi
+              echo "--- Processing app: $APP_ID with entrypoint: $ENTRYPOINT_SCRIPT and requirements: $REQUIREMENTS_FILE ---"
 
               aws ecr create-repository --repository-name $ECR_REPOSITORY --region ${{ env.AWS_REGION }} || true
-
-              docker build -t $IMAGE_URI --build-arg APP_DIR="$app_path" .
+              docker build -t $IMAGE_URI \
+                --build-arg APP_DIR="$app_path" \
+                --build-arg ENTRYPOINT_SCRIPT="$ENTRYPOINT_SCRIPT" \
+                --build-arg REQUIREMENTS_FILE="$REQUIREMENTS_FILE" .
               docker push $IMAGE_URI
 
-              # Use envsubst to replace variables in the template and create the final JSON
               envsubst < task-definition-template.json > task-definition.json
 
-              # Register the new task definition revision from the file
               aws ecs register-task-definition --cli-input-json file://task-definition.json
-              echo "--- Finished processing $APP_ID ---"
             fi
           done
-
       - name: Generate apps.json file
         run: |
           pip install pyyaml
           python scripts/generate_apps_json.py
-
       - name: Deploy frontend to S3
         run: |
           aws s3 sync . s3://${{ secrets.S3_BUCKET_NAME }} --exclude "*" --include "index.html" --include "script.js" --include "apps.json" --delete
