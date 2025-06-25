@@ -38,13 +38,13 @@ jobs:
               export TASK_FAMILY="${APP_ID}-task"
 
               MANIFEST_PATH="$app_path/manifest.yaml"
-              # Extract entryPoint, default to app.py
-              ENTRYPOINT_SCRIPT=$(grep 'entryPoint:' "$MANIFEST_PATH" | awk '{print $2}')
+              # Extract entryPoint, remove quotes, and set default
+              ENTRYPOINT_SCRIPT=$(grep 'entryPoint:' "$MANIFEST_PATH" | awk '{print $2}' | tr -d '"')
               if [ -z "$ENTRYPOINT_SCRIPT" ]; then
                 ENTRYPOINT_SCRIPT="app.py"
               fi
-              # Extract requirements file, default to requirements.txt
-              REQUIREMENTS_FILE=$(grep 'requirements:' "$MANIFEST_PATH" | awk '{print $2}')
+              # Extract requirements file, remove quotes, and set default
+              REQUIREMENTS_FILE=$(grep 'requirements:' "$MANIFEST_PATH" | awk '{print $2}' | tr -d '"')
               if [ -z "$REQUIREMENTS_FILE" ]; then
                 REQUIREMENTS_FILE="requirements.txt"
               fi
