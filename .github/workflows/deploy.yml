@@ -59,6 +59,7 @@ jobs:
                 --build-arg REQUIREMENTS_FILE="$REQUIREMENTS_FILE" .
               docker push $IMAGE_URI
 
+              # Use envsubst for robust variable substitution
               envsubst < task-definition-template.json > "temp-task-def.json"
 
               echo "--- Registering Task Definition from this file: ---"
