@@ -60,8 +60,8 @@ jobs:
         run: |
           ECR_REGISTRY=${{ steps.login-ecr.outputs.registry }}
           IMAGE_TAG=${{ github.sha }}
-          export EXECUTION_ROLE_ARN=$(aws iam get-role --role-name ecsTaskExecutionRole --query 'Role.Arn' --output text)
-          export TASK_ROLE_ARN=$EXECUTION_ROLE_ARN
+          EXECUTION_ROLE_ARN=$(aws iam get-role --role-name ecsTaskExecutionRole --query 'Role.Arn' --output text)
+          TASK_ROLE_ARN=$EXECUTION_ROLE_ARN
 
           declare -A processed_dirs
 
@@ -77,16 +77,16 @@ jobs:
 
             if [[ -z "${processed_dirs[$app_path]}" && "$app_path" != "apps" ]]; then
               processed_dirs[$app_path]=1
-              export APP_ID=$(basename "$app_path")
-              export ECR_REPOSITORY=$APP_ID
-              export IMAGE_URI="$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
-              export TASK_FAMILY="${APP_ID}-task"
+              APP_ID=$(basename "$app_path")
+              ECR_REPOSITORY=$APP_ID
+              IMAGE_URI="$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
+              TASK_FAMILY="${APP_ID}-task"
 
               MANIFEST_PATH="$app_path/manifest.yaml"
-              export ENTRYPOINT_SCRIPT=$(python -c "import yaml; f=open('$MANIFEST_PATH'); d=yaml.safe_load(f); print(d.get('entryPoint', 'app.py'))")
-              export REQUIREMENTS_FILE=$(python -c "import yaml; f=open('$MANIFEST_PATH'); d=yaml.safe_load(f); print(d.get('requirements', 'requirements.txt'))")
-              export CPU=$(python -c "import yaml; f=open('$MANIFEST_PATH'); d=yaml.safe_load(f); print(d.get('cpu', '256'))")
-              export MEMORY=$(python -c "import yaml; f=open('$MANIFEST_PATH'); d=yaml.safe_load(f); print(d.get('memory', '512'))")
+              ENTRYPOINT_SCRIPT=$(python -c "import yaml; f=open('$MANIFEST_PATH'); d=yaml.safe_load(f); print(d.get('entryPoint', 'app.py'))")
+              REQUIREMENTS_FILE=$(python -c "import yaml; f=open('$MANIFEST_PATH'); d=yaml.safe_load(f); print(d.get('requirements', 'requirements.txt'))")
+              CPU_VALUE=$(python -c "import yaml; f=open('$MANIFEST_PATH'); d=yaml.safe_load(f); print(d.get('cpu', '256'))")
+              MEMORY_VALUE=$(python -c "import yaml; f=open('$MANIFEST_PATH'); d=yaml.safe_load(f); print(d.get('memory', '512'))")
 
               echo "--- Change detected in $app_path. Processing app: $APP_ID ---"
 
@@ -103,10 +103,18 @@ jobs:
               soci create $IMAGE_URI
               soci push $IMAGE_URI
 
-              # Use a more robust method for variable substitution
-              envsubst '${TASK_FAMILY} ${EXECUTION_ROLE_ARN} ${TASK_ROLE_ARN} ${APP_ID} ${IMAGE_URI} ${CPU} ${MEMORY}' < task-definition-template.json > task-definition.json
+              # Create a temporary template file for substitution
+              cp task-definition-template.json temp-task-def.json
+              # Use sed for robust replacement
+              sed -i "s/\${TASK_FAMILY}/$TASK_FAMILY/g" temp-task-def.json
+              sed -i "s/\${EXECUTION_ROLE_ARN}/$EXECUTION_ROLE_ARN/g" temp-task-def.json
+              sed -i "s/\${TASK_ROLE_ARN}/$TASK_ROLE_ARN/g" temp-task-def.json
+              sed -i "s/\${APP_ID}/$APP_ID/g" temp-task-def.json
+              sed -i "s@\${IMAGE_URI}@$IMAGE_URI@g" temp-task-def.json
+              sed -i "s/\${CPU}/$CPU_VALUE/g" temp-task-def.json
+              sed -i "s/\${MEMORY}/$MEMORY_VALUE/g" temp-task-def.json
 
-              aws ecs register-task-definition --cli-input-json file://task-definition.json
+              aws ecs register-task-definition --cli-input-json file://temp-task-def.json
             fi
           done
           # Move new cache to old cache position
