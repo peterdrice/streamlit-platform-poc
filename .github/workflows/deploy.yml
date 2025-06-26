@@ -36,7 +36,7 @@ jobs:
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v1
 
-      - name: Set up Docker Buildx
+      - name: Set up Docker Buildx for advanced caching
         if: steps.changed-files.outputs.any_changed == 'true'
         uses: docker/setup-buildx-action@v2
 
@@ -57,11 +57,9 @@ jobs:
           export EXECUTION_ROLE_ARN=$(aws iam get-role --role-name ecsTaskExecutionRole --query 'Role.Arn' --output text)
           export TASK_ROLE_ARN=$EXECUTION_ROLE_ARN
 
-          # Keep track of directories we've already processed
           declare -A processed_dirs
 
           for file in ${{ steps.changed-files.outputs.all_changed_files }}; do
-            # Extract the app directory (e.g., apps/my-app)
             app_path=$(dirname "$file")
             while [[ "$app_path" != "apps" && "$app_path" != "." ]]; do
                 parent_dir=$(dirname "$app_path")
@@ -71,7 +69,7 @@ jobs:
                 app_path=$parent_dir
             done
 
-            if [[ -z "${processed_dirs[$app_path]}" ]]; then
+            if [[ -z "${processed_dirs[$app_path]}" && "$app_path" != "apps" ]]; then
               processed_dirs[$app_path]=1
               export APP_ID=$(basename "$app_path")
               export ECR_REPOSITORY=$APP_ID
@@ -85,13 +83,13 @@ jobs:
               echo "--- Change detected in $app_path. Processing app: $APP_ID ---"
 
               aws ecr create-repository --repository-name $ECR_REPOSITORY --region ${{ env.AWS_REGION }} || true
-              docker build -t $IMAGE_URI \
+              docker buildx build --platform linux/amd64 -t $IMAGE_URI \
                 --cache-from=type=local,src=/tmp/.buildx-cache \
-                --cache-to=type=local,dest=/tmp/.buildx-cache-new \
+                --cache-to=type=local,dest=/tmp/.buildx-cache-new,mode=max \
                 --build-arg APP_DIR="$app_path" \
                 --build-arg ENTRYPOINT_SCRIPT="$ENTRYPOINT_SCRIPT" \
-                --build-arg REQUIREMENTS_FILE="$REQUIREMENTS_FILE" .
-              docker push $IMAGE_URI
+                --build-arg REQUIREMENTS_FILE="$REQUIREMENTS_FILE" \
+                --push .
 
               envsubst < task-definition-template.json > task-definition.json
 
