@@ -3,6 +3,4 @@ version: "1.0"
 description: "An interactive tool that demonstrates the successful automated deployment of a containerized Streamlit application on AWS ECS Fargate, with efficient Github Actions."
 category: "Data Science Tools"
 subcategory: "Test"
-entryPoint: "app.py"
-requirements: "requirements.txt"
 
