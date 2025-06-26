@@ -51,7 +51,8 @@ jobs:
       - name: Install SOCI CLI
         if: steps.changed-files.outputs.any_changed == 'true'
         run: |
-          sudo curl -L -o /usr/local/bin/soci https://github.com/awslabs/soci-snapshotter/releases/latest/download/soci-linux-amd64
+          # Use a direct, versioned link for reliability
+          sudo curl -L -o /usr/local/bin/soci https://github.com/awslabs/soci-snapshotter/releases/download/v0.4.0/soci-linux-amd64
           sudo chmod +x /usr/local/bin/soci
 
       - name: Build and Push only changed apps
