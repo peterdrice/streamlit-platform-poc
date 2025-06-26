@@ -88,6 +88,7 @@ jobs:
               MEMORY_VALUE=$(python -c "import yaml; f=open('$MANIFEST_PATH'); d=yaml.safe_load(f); print(d.get('memory', '512'))")
 
               echo "--- Change detected in $app_path. Processing app: $APP_ID ---"
+              echo "CPU: $CPU_VALUE, Memory: $MEMORY_VALUE"
 
               aws ecr create-repository --repository-name $ECR_REPOSITORY --region ${{ env.AWS_REGION }} || true
               docker buildx build --platform linux/amd64 -t $IMAGE_URI \
@@ -102,18 +103,21 @@ jobs:
               soci create $IMAGE_URI
               soci push $IMAGE_URI
 
-              # Create a temporary template file for substitution
-              cp task-definition-template.json "temp-task-def-${APP_ID}.json"
-              # Use sed for robust replacement on the temporary file
-              sed -i "s/\${TASK_FAMILY}/$TASK_FAMILY/g" "temp-task-def-${APP_ID}.json"
-              sed -i "s#\${EXECUTION_ROLE_ARN}#$EXECUTION_ROLE_ARN#g" "temp-task-def-${APP_ID}.json"
-              sed -i "s#\${TASK_ROLE_ARN}#$TASK_ROLE_ARN#g" "temp-task-def-${APP_ID}.json"
-              sed -i "s/\${APP_ID}/$APP_ID/g" "temp-task-def-${APP_ID}.json"
-              sed -i "s#\${IMAGE_URI}#$IMAGE_URI#g" "temp-task-def-${APP_ID}.json"
-              sed -i "s/\${CPU}/$CPU_VALUE/g" "temp-task-def-${APP_ID}.json"
-              sed -i "s/\${MEMORY}/$MEMORY_VALUE/g" "temp-task-def-${APP_ID}.json"
+              # Create a temporary file from the template for each app
+              cp task-definition-template.json "temp-task-def.json"
+              # Use sed to replace placeholders
+              sed -i "s|\${TASK_FAMILY}|$TASK_FAMILY|g" "temp-task-def.json"
+              sed -i "s|\${EXECUTION_ROLE_ARN}|$EXECUTION_ROLE_ARN|g" "temp-task-def.json"
+              sed -i "s|\${TASK_ROLE_ARN}|$TASK_ROLE_ARN|g" "temp-task-def.json"
+              sed -i "s|\${APP_ID}|$APP_ID|g" "temp-task-def.json"
+              sed -i "s|@IMAGE_URI@|$IMAGE_URI|g" "temp-task-def.json"
+              sed -i "s|\"${CPU}\"|$CPU_VALUE|g" "temp-task-def.json"
+              sed -i "s|\"${MEMORY}\"|$MEMORY_VALUE|g" "temp-task-def.json"
 
-              aws ecs register-task-definition --cli-input-json file://"temp-task-def-${APP_ID}.json"
+              echo "--- Registering Task Definition from this file: ---"
+              cat temp-task-def.json
+
+              aws ecs register-task-definition --cli-input-json file://temp-task-def.json
             fi
           done
           # Move new cache to old cache position
