@@ -1,7 +1,6 @@
 import causalimpact
 import streamlit as st
 import pandas as pd
-
 import json
 import textwrap
 import datetime
@@ -13,7 +12,7 @@ def create_markdown_report(
 ):
     return textwrap.dedent(f"""
 # {test_title} - Causal Impact Analysis Results
-    
+
 ## Test Overview
 - **Test Name:** {test_title}
 - **Analysis Date:** {datetime.date.today()}
@@ -65,12 +64,12 @@ def create_json_report(
             "end": str(post_test_end)
         },
         "incremental_results": {
-            "absolute_effect": f"{impact_summary.abs_effect["cumulative"]:,.0f}",
-            "relative_effect": f"{impact_summary.rel_effect["cumulative"]:,.2%}",
-            "test_cell_total": f"{impact_summary.actual["cumulative"]:,.2f}",
-            "control_cell_total": f"{impact_summary.predicted["cumulative"]:,.2f}"
+            "absolute_effect": f"{impact_summary.abs_effect['cumulative']:,.0f}",
+            "relative_effect": f"{impact_summary.rel_effect['cumulative']:,.2%}",
+            "test_cell_total": f"{impact_summary.actual['cumulative']:,.2f}",
+            "control_cell_total": f"{impact_summary.predicted['cumulative']:,.2f}"
         },
-        "confidence": f"{(1 - impact_summary.p_value["cumulative"]):,.2%}",
+        "confidence": f"{(1 - impact_summary.p_value['cumulative']):,.2%}",
         "analysis_date": str(datetime.date.today())
     }
 
