@@ -4,8 +4,8 @@ numpy
 # The causalimpact library from Google is built on top of TensorFlow and TensorFlow Probability
 # It's recommended to install specific compatible versions if you encounter issues
 causalimpact
-tensorflow=2.10.0
-tensorflow-probability=0.16.0
+tensorflow
+tensorflow-probability
 
 # For data processing and machine learning
 scikit-learn
