@@ -103,7 +103,8 @@ jobs:
               soci create $IMAGE_URI
               soci push $IMAGE_URI
 
-              envsubst < task-definition-template.json > task-definition.json
+              # Use a more robust method for variable substitution
+              envsubst '${TASK_FAMILY} ${EXECUTION_ROLE_ARN} ${TASK_ROLE_ARN} ${APP_ID} ${IMAGE_URI} ${CPU} ${MEMORY}' < task-definition-template.json > task-definition.json
 
               aws ecs register-task-definition --cli-input-json file://task-definition.json
             fi
