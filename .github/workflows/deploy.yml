@@ -84,6 +84,8 @@ jobs:
               MANIFEST_PATH="$app_path/manifest.yaml"
               export ENTRYPOINT_SCRIPT=$(python -c "import yaml; f=open('$MANIFEST_PATH'); d=yaml.safe_load(f); print(d.get('entryPoint', 'app.py'))")
               export REQUIREMENTS_FILE=$(python -c "import yaml; f=open('$MANIFEST_PATH'); d=yaml.safe_load(f); print(d.get('requirements', 'requirements.txt'))")
+              export CPU=$(python -c "import yaml; f=open('$MANIFEST_PATH'); d=yaml.safe_load(f); print(d.get('cpu', '256'))")
+              export MEMORY=$(python -c "import yaml; f=open('$MANIFEST_PATH'); d=yaml.safe_load(f); print(d.get('memory', '512'))")
 
               echo "--- Change detected in $app_path. Processing app: $APP_ID ---"
 

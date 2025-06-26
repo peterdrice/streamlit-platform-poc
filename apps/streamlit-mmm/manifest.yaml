@@ -4,3 +4,5 @@ description: "A Streamlit application for cleaning Kip MMM output data for use i
 category: "Data Processing"
 entryPoint: "main.py"
 requirements: "requirements.txt"
+cpu: "1024" # 1 vCPU
+memory: "2048" # 2 GB
