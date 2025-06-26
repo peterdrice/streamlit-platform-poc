@@ -9,7 +9,7 @@ tensorflow-probability
 
 # For data processing and machine learning
 scikit-learn
-scipy
+scipy==1.12.0
 pyjanitor
 
 # For plotting
