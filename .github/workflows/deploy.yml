@@ -25,7 +25,6 @@ jobs:
         run: pip install pyyaml
 
       - name: Configure AWS Credentials
-        if: steps.changed-files.outputs.any_changed == 'true'
         uses: aws-actions/configure-aws-credentials@v2
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
